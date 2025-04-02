@@ -1,78 +1,55 @@
-module d.string_combinations;
-
 import std.stdio;
-import std.conv;
-import std.array;
+
+import std.math : pow;
+import std.algorithm: canFind;
 
 void main() {
-    writeln(everyCombination(['a', 'b', 'c']));
+    char[] charSet = ['h','e','l','o'];
+    int maximumLength = 5;
+    string[] result = allCombinations(charSet, maximumLength);
+
+    assert(result.canFind("l"));
+    assert(result.canFind("eeeee"));
+    assert(result.canFind("hello"));
+
+    // All capital characters A-Z
+    charSet = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+    maximumLength = 5;
+    result = allCombinations(charSet, maximumLength);
+
+    // All words consisting of letters from the English alphabet, which are 5 or less characters should appear in the returned list.
+    assert(result.canFind("ZACH"));
+    assert(result.canFind("DAVIS"));
+    assert(result.canFind("JOHN"));
+
+    assert(result.canFind("MILK"));
+    assert(result.canFind("EGG"));
+    assert(result.canFind("CAT"));
+    assert(result.canFind("APPLE"));
+
+    assert(result.canFind("DLANG"));
 }
 
-string[] everyCombination(char[] chars) {
-    string[] output;
 
-    int[] combinationHolder;
-    for (int i = 0; i < chars.length; i++) {
-        combinationHolder ~= 0;
-    }
 
-    bool isFull;
-    string fullString;
-    while (true) {
-        isFull = true;
-        for (int i = 0; i < combinationHolder.length; i++) {
-            if (combinationHolder[i] == 0) {
-                combinationHolder[i] = 1;
-                isFull = false;
+string[] allCombinations(char[] charSet, int maximumLength) {
+    string[] result;
+
+    string generated;
+    int temp;
+    for (int i = 0; i < pow(charSet.length, maximumLength); i++) {
+        generated = "";
+        temp = i;
+        while (true) {
+            generated ~= charSet[temp%charSet.length];
+            temp /= charSet.length;
+            if (temp < 1) {
                 break;
             }
-            combinationHolder[i] = 0;
         }
 
-        if (isFull) {
-            return output;
-        }
-
-        fullString = "";
-        for (int i = 0; i < combinationHolder.length; i++) {
-            if (combinationHolder[i] == 1) {
-                fullString ~= chars[i];
-            }
-        }
-        
-        if (fullString.length <= 1) {
-            output ~= fullString;
-        } else {
-            output ~= findPermutation(fullString);
-        }
-        
-    }
-}
-
-
-static void permute(int index, char[] s, string[]* output) {
-    if (index == s.length) {
-        *(output) ~= to!(string)(s);
-        return;
+        result ~= generated;
     }
 
-    for (int i = index; i < s.length; i++) {
-        swap(s, index, i);
-        permute(index + 1, s, output);
-        swap(s, index, i);
-    }
-}
-
-static void swap(char[] s, int i, int j) {
-    char temp = s[i];
-    s[i] = s[j];
-    s[j] = temp;
-}
-
-static string[] findPermutation(string s) {
-    string[] output = [];
-
-    permute(0, to!(char[])(s), &output);
-
-    return output;
+    return result;
 }
