@@ -4,6 +4,8 @@ import std.math : pow, log10;
 import std.algorithm: canFind;
 import std.conv : to;
 import core.stdc.stdlib : malloc, free;
+import std.datetime.stopwatch;
+import std.array : Appender;
 
 void main() {
     // Define a set of characters to be used.
@@ -11,21 +13,22 @@ void main() {
     // Maximum length of generated password.
     int maximumLength = 5;
 
-    string[] result = allCombinations(charSet, maximumLength);
+    string[] result = allCombinations(charSet, 0, maximumLength);
 
-    //writeln(result);
-
-    // All combinations of h, e, l, and o are generated out to 5 characters.
+    // All combinations of h, e, l, and o are generated out to 5 characters. 1,024 generated strings.
     assert(result.canFind("l"));
     assert(result.canFind("eeeee"));
     assert(result.canFind("hello"));
+    assert(result.canFind("olleh"));
+    
+    writeln("Generated count: ", result.length);
 
     // All capital characters A-Z
     charSet = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
     maximumLength = 5;
-    result = allCombinations(charSet, maximumLength);
+    result = allCombinations(charSet, 0, maximumLength);
 
-    // All words consisting of letters from the English alphabet, which are 5 or less characters should appear in the returned list.
+    // All words consisting of letters from the English alphabet, which are 5 or less characters should appear in the returned list. 11,881,376 generated words.
     assert(result.canFind("ZACH"));
     assert(result.canFind("DAVIS"));
     assert(result.canFind("JOHN"));
@@ -37,43 +40,64 @@ void main() {
 
     assert(result.canFind("JAVA"));
     assert(result.canFind("DLANG"));
+
+    writeln("Generated count: ", result.length);
+
+    auto sw = StopWatch(AutoStart.no);
+    
+    charSet = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+
+    writeln("Benchmark starting...");
+    
+
+    for (int i = 1; i < 6; i++) {
+        sw.start();
+        allCombinations(charSet, i);
+        sw.stop();
+
+        long msecs = sw.peek.total!"msecs";
+        writeln("Charset of length " ~ to!(string)(charSet.length) ~ " and maximum password length of length " ~ to!(string)(i) ~ " took " ~ to!(string)(to!(double)(msecs)/1000) ~ " seconds");
+    }
+
+    
+    writeln("Benchmark Ending...");
 }
 
+string[] allCombinations(char[] charSet, int minimumLength, int maximumLength) {
+    string[] output;
+    foreach (i; minimumLength..maximumLength+1) {
+        output ~= allCombinations(charSet, i);
+    }
+    return output;
+}
 
 string[] allCombinations(char[] charSet, int maximumLength) {
-    size_t numberOfStrings = to!(int)(pow(charSet.length, maximumLength+1));
-    string* staticResult = cast(string*) malloc(numberOfStrings * string.sizeof);
+    Appender!(string[]) result;
+    uint base = cast(uint)(charSet.length);
+    uint numberOfStrings = cast(uint)(pow(base, maximumLength));
 
-    string generated;
-    int temp;
+    for (uint i = 0; i < numberOfStrings; i++) {
+        string generated;
+        uint temp = i;
 
-    // Definite first case otherwise the logarithm math will be messed up when i=0
-    staticResult[0] = to!(string)(charSet[0]);
-
-    // Loops while the length of the generated string is below the threshhold maximumLength.
-    for (int i = 1; i < numberOfStrings; i++) {
-        generated = "";
-
-        // Temp variable for division
-        temp = i;
-
-        // Loop for log base charSet.length of i rounded down.
-        for (int _ = 0; _ < to!(int)(log10(i)/log10(charSet.length))+1; _++) {
+        // Convert to base-N representation
+        do {
             /* 
             Takes the number in the 1s place of i and finds the corresponding character in the charSet.
-            This is where the magic happens. This essentially treats charSet as a set of numbers in base
-            charSet.length and constructs "numbers" sequentially.
+            This essentially treats charSet as a set of numbers in base n and constructs "numbers" sequentially.
             */
-            generated ~= charSet[temp%charSet.length];
-            temp /= charSet.length;
+            generated = charSet[temp % base] ~ generated;
+            temp /= base;
+        } while (temp > 0);
+
+        // Pad with leading charSet[0] to ensure correct length
+        while (generated.length < maximumLength) {
+            generated = charSet[0] ~ generated;
         }
 
         // Add generated string to the result list.
-        staticResult[i] = generated;
+        result.put(generated);
     }
 
-    // Create a regular dynamic array out of the static array, free the memory of the static array, then return the dynamic array.
-    string[] result = staticResult[0 .. numberOfStrings];
-    free(staticResult);
-    return result;
+    return result.data;
 }
